@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ServiceConnect - Login/Register</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body {
+        background: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+    .container {
+        background: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 400px;
+    }
+    h1 {
+        text-align: center;
+        color: #2563eb;
+        margin-bottom: 10px;
+    }
+    .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 25px;
+        font-size: 14px;
+    }
+    .tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #eee;
+    }
+    .tab {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        cursor: pointer;
+        color: #888;
+        font-weight: bold;
+    }
+    .tab.active {
+        color: #2563eb;
+        border-bottom: 2px solid #2563eb;
+        margin-bottom: -2px;
+    }
+    .form { display: none; }
+    .form.active { display: block; }
+    input, select {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    button {
+        width: 100%;
+        padding: 12px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    #message {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 6px;
+        text-align: center;
+        font-size: 14px;
+        display: none;
+    }
+    .success { background: #d1fae5; color: #065f46; display: block !important; }
+    .error { background: #fee2e2; color: #991b1b; display: block !important; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ServiceConnect</h1>
+    <p class="subtitle">Local Service Marketplace</p>
+
+    <div class="tabs">
+        <div class="tab active" id="loginTab" onclick="switchTab('login')">Login</div>
+        <div class="tab" id="registerTab" onclick="switchTab('register')">Register</div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="form active" id="loginForm">
+        <input type="email" id="loginEmail" placeholder="Email">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div class="form" id="registerForm">
+        <input type="text" id="regName" placeholder="Full Name">
+        <input type="email" id="regEmail" placeholder="Email">
+        <input type="password" id="regPassword" placeholder="Password">
+        <input type="text" id="regPhone" placeholder="Phone Number">
+        <select id="regRole">
+            <option value="CUSTOMER">I'm a Customer</option>
+            <option value="WORKER">I'm a Worker</option>
+        </select>
+        <button onclick="register()">Register</button>
+    </div>
+
+    <div id="message"></div>
+</div>
+
+<script>
+    const API_BASE = "http://localhost:8080/api";
+
+    function switchTab(tab) {
+        document.getElementById('loginTab').classList.toggle('active', tab === 'login');
+        document.getElementById('registerTab').classList.toggle('active', tab === 'register');
+        document.getElementById('loginForm').classList.toggle('active', tab === 'login');
+        document.getElementById('registerForm').classList.toggle('active', tab === 'register');
+        document.getElementById('message').style.display = 'none';
+    }
+
+    function showMessage(text, isError) {
+        const msg = document.getElementById('message');
+        msg.textContent = text;
+        msg.className = isError ? 'error' : 'success';
+    }
+
+    async function login() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        if (!email || !password) {
+            showMessage("Please fill all fields", true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('email', email);
+                showMessage("Login successful! Redirecting...", false);
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } else {
+                showMessage(data.error || "Login failed", true);
+            }
+        } catch (err) {
+            showMessage("Could not connect to server. Is it running?", true);
+        }
+    }
+
+    async function register() {
+        const name = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPassword').value;
+        const phone = document.getElementById('regPhone').value;
+        const role = document.getElementById('regRole').value;
+
+        if (!name || !email || !password || !phone) {
+            showMessage("Please fill all fields", true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password, phone, role })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('email', email);
+                showMessage("Registration successful! Redirecting...", false);
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } else {
+                showMessage(data.error || "Registration failed", true);
+            }
+        } catch (err) {
+            showMessage("Could not connect to server. Is it running?", true);
+        }
+    }
+</script>
+
+</body>
+</html>

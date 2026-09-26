@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ServiceConnect - Dashboard</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background: #f0f2f5; }
+
+    .navbar {
+        background: #2563eb;
+        color: white;
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .navbar h2 { font-size: 20px; }
+    .navbar button {
+        background: white;
+        color: #2563eb;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 30px auto;
+        padding: 0 20px;
+    }
+
+    .card {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+
+    .card h3 {
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .row { display: flex; gap: 10px; }
+    .row input { flex: 1; }
+
+    button.primary {
+        width: 100%;
+        padding: 12px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    button.primary:hover { background: #1d4ed8; }
+
+    .worker-item {
+        border: 1px solid #eee;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .worker-info h4 { color: #333; margin-bottom: 5px; }
+    .worker-info p { color: #666; font-size: 13px; }
+    .book-btn {
+        background: #16a34a;
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+    }
+
+    #message {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 6px;
+        text-align: center;
+        font-size: 14px;
+        display: none;
+    }
+    .success { background: #d1fae5; color: #065f46; display: block !important; }
+    .error { background: #fee2e2; color: #991b1b; display: block !important; }
+
+    .booking-item {
+        border-left: 4px solid #2563eb;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        background: #f9fafb;
+        border-radius: 6px;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-top: 5px;
+    }
+    .PENDING { background: #fef3c7; color: #92400e; }
+    .ACCEPTED { background: #dbeafe; color: #1e40af; }
+    .COMPLETED { background: #d1fae5; color: #065f46; }
+    .REJECTED { background: #fee2e2; color: #991b1b; }
+</style>
+</head>
+<body>
+
+<div class="navbar">
+    <h2>ServiceConnect</h2>
+    <div>
+        <span id="userEmail" style="margin-right: 15px;"></span>
+        <button onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- SEARCH WORKERS -->
+    <div class="card">
+        <h3>Find a Worker</h3>
+        <input type="text" id="serviceType" placeholder="Service type (e.g. Plumber)">
+        <div class="row">
+            <input type="number" step="any" id="lat" placeholder="Latitude (e.g. 28.6139)">
+            <input type="number" step="any" id="lng" placeholder="Longitude (e.g. 77.2090)">
+        </div>
+        <input type="number" id="radius" placeholder="Search radius in km (default 10)">
+        <button class="primary" onclick="searchWorkers()">Search Nearby Workers</button>
+        <button class="primary" style="background:#666; margin-top:8px;" onclick="loadAllWorkers()">Show All Workers</button>
+        <div id="searchResults" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- MY BOOKINGS -->
+    <div class="card">
+        <h3>My Bookings</h3>
+        <button class="primary" onclick="loadMyBookings()">Refresh Bookings</button>
+        <div id="bookingsList" style="margin-top: 15px;"></div>
+    </div>
+
+    <div id="message"></div>
+</div>
+
+<script>
+    const API_BASE = "http://localhost:8080/api";
+    const token = localStorage.getItem('token');
+    const email = localStorage.getItem('email');
+
+    if (!token) {
+        window.location.href = 'index.html';
+    }
+
+    document.getElementById('userEmail').textContent = email;
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+
+    function showMessage(text, isError) {
+        const msg = document.getElementById('message');
+        msg.textContent = text;
+        msg.className = isError ? 'error' : 'success';
+        setTimeout(() => { msg.style.display = 'none'; }, 4000);
+    }
+
+    function authHeaders() {
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        };
+    }
+
+    async function searchWorkers() {
+        const serviceType = document.getElementById('serviceType').value;
+        const lat = document.getElementById('lat').value;
+        const lng = document.getElementById('lng').value;
+        const radius = document.getElementById('radius').value || 10;
+
+        if (!serviceType || !lat || !lng) {
+            showMessage("Please fill service type, latitude and longitude", true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/workers/search?lat=${lat}&lng=${lng}&radius=${radius}&serviceType=${serviceType}`, {
+                headers: authHeaders()
+            });
+            const data = await response.json();
+            renderWorkers(data);
+        } catch (err) {
+            showMessage("Search failed. Is the server running?", true);
+        }
+    }
+
+    async function loadAllWorkers() {
+        try {
+            const response = await fetch(`${API_BASE}/workers/all`, {
+                headers: authHeaders()
+            });
+            const data = await response.json();
+            renderWorkers(data);
+        } catch (err) {
+            showMessage("Could not load workers.", true);
+        }
+    }
+
+    function renderWorkers(workers) {
+        const container = document.getElementById('searchResults');
+        if (!workers || workers.length === 0) {
+            container.innerHTML = '<p style="color:#888;">No workers found.</p>';
+            return;
+        }
+        container.innerHTML = workers.map(w => `
+            <div class="worker-item">
+                <div class="worker-info">
+                    <h4>${w.user ? w.user.name : 'Worker'} — ${w.serviceType}</h4>
+                    <p>Experience: ${w.experience} yrs | Rate: ₹${w.hourlyRate}/hr | Rating: ${w.avgRating}⭐</p>
+                </div>
+                <button class="book-btn" onclick="bookWorker(${w.user ? w.user.id : 0}, '${w.serviceType}')">Book Now</button>
+            </div>
+        `).join('');
+    }
+
+    async function bookWorker(workerId, serviceType) {
+        const address = prompt("Enter your address for this service:");
+        if (!address) return;
+
+        try {
+            const response = await fetch(`${API_BASE}/bookings/create`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ workerId, serviceType, address })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage("Booking created successfully!", false);
+                loadMyBookings();
+            } else {
+                showMessage(data.error || "Booking failed", true);
+            }
+        } catch (err) {
+            showMessage("Could not create booking.", true);
+        }
+    }
+
+    async function loadMyBookings() {
+        try {
+            const response = await fetch(`${API_BASE}/bookings/my-bookings`, {
+                headers: authHeaders()
+            });
+            const data = await response.json();
+            renderBookings(data);
+        } catch (err) {
+            document.getElementById('bookingsList').innerHTML = '<p style="color:#888;">Could not load bookings.</p>';
+        }
+    }
+
+    function renderBookings(bookings) {
+        const container = document.getElementById('bookingsList');
+        if (!bookings || bookings.length === 0) {
+            container.innerHTML = '<p style="color:#888;">No bookings yet.</p>';
+            return;
+        }
+        container.innerHTML = bookings.map(b => `
+            <div class="booking-item">
+                <strong>${b.serviceType}</strong> with ${b.worker ? b.worker.name : 'Worker'}<br>
+                <span style="font-size:13px; color:#666;">${b.address}</span><br>
+                <span class="status-badge ${b.status}">${b.status}</span>
+            </div>
+        `).join('');
+    }
+
+    // Load bookings on page load
+    loadMyBookings();
+</script>
+
+</body>
+</html>
