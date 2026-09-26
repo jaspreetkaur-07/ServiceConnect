@@ -1,6 +1,6 @@
-# ServiceConnect — Local Service Marketplace Backend
+# ServiceConnect — Local Service Marketplace (Full-Stack)
 
-A full-stack backend REST API for a local service marketplace platform that connects customers with nearby verified service providers (plumbers, electricians, etc.). Built with Java, Spring Boot, Spring Security, and PostgreSQL.
+A full-stack local service marketplace platform that connects customers with nearby verified service providers (plumbers, electricians, etc.). Built with Java, Spring Boot, Spring Security, PostgreSQL for the backend, and HTML/CSS/JavaScript for the frontend.
 
 ## Features
 
@@ -9,18 +9,26 @@ A full-stack backend REST API for a local service marketplace platform that conn
 - **Geolocation-based Search** — Find nearby workers using the Haversine formula for accurate distance calculation
 - **Booking Management** — Full booking lifecycle: create, accept/reject, and mark as completed
 - **Review System** — Customers can rate and review workers after a completed booking
+- **Interactive Frontend** — Login/Register page and a dashboard for searching workers, creating bookings, and tracking booking status in real time
 
 ## Tech Stack
 
-- **Backend:** Java 17+, Spring Boot 3.x
-- **Security:** Spring Security, JWT (JJWT library)
-- **Database:** PostgreSQL, Spring Data JPA / Hibernate
-- **Build Tool:** Maven
-- **Testing:** Postman (manual API testing)
+**Backend:**
+- Java 17+, Spring Boot 3.x
+- Spring Security, JWT (JJWT library)
+- PostgreSQL, Spring Data JPA / Hibernate
+- Maven
+
+**Frontend:**
+- HTML5, CSS3, Vanilla JavaScript
+- Fetch API for backend communication
+- LocalStorage for session/token management
 
 ## Architecture
 
 ```
+Frontend (HTML/CSS/JS)
+        ↕ REST API calls (fetch)
 Controller Layer  →  Service Layer  →  Repository Layer  →  Database
      (REST APIs)      (Business Logic)      (JPA)          (PostgreSQL)
 ```
@@ -28,14 +36,19 @@ Controller Layer  →  Service Layer  →  Repository Layer  →  Database
 ## Project Structure
 
 ```
-com.sk.servicemarketplace/
-├── entity/       → User, Role, WorkerProfile, Booking, BookingStatus, Review
-├── repository/   → JPA repositories with custom queries (e.g., geolocation search)
-├── dto/          → Request/response objects (RegisterRequest, LoginRequest)
-├── security/     → JwtUtil, JwtFilter, UserDetailsServiceImpl
-├── config/       → SecurityConfig (JWT filter chain, password encoding)
-├── service/      → Business logic layer
-└── controller/   → REST API endpoints
+servicemarketplace/
+├── src/main/java/com/sk/servicemarketplace/
+│   ├── entity/       → User, Role, WorkerProfile, Booking, BookingStatus, Review
+│   ├── repository/   → JPA repositories with custom queries (e.g., geolocation search)
+│   ├── dto/          → Request/response objects (RegisterRequest, LoginRequest)
+│   ├── security/     → JwtUtil, JwtFilter, UserDetailsServiceImpl
+│   ├── config/       → SecurityConfig (JWT filter chain, CORS, password encoding)
+│   ├── service/      → Business logic layer
+│   └── controller/   → REST API endpoints
+├── frontend/
+│   ├── index.html    → Login/Register page
+│   └── dashboard.html → Worker search, booking, and booking history
+└── pom.xml
 ```
 
 ## API Endpoints
@@ -68,6 +81,8 @@ com.sk.servicemarketplace/
 
 ## Setup & Run Locally
 
+### Backend
+
 1. Clone the repository:
    ```
    git clone https://github.com/jaspreetkaur-07/ServiceConnect.git
@@ -79,7 +94,16 @@ com.sk.servicemarketplace/
    mvn spring-boot:run
    ```
 5. Server starts at `http://localhost:8080`
-6. Test endpoints using Postman — set `Authorization: Bearer <token>` for protected routes
+
+### Frontend
+
+1. Make sure the backend server is running first
+2. Open `frontend/index.html` directly in a browser (double-click the file)
+3. Register a new account or log in
+4. You'll be redirected to `dashboard.html` where you can:
+   - Search for nearby workers by service type and coordinates
+   - Book a worker
+   - View and track your bookings
 
 ## Sample Request
 
@@ -105,11 +129,12 @@ POST /api/auth/register
 
 ## Future Enhancements
 
-- Frontend (React) for a complete full-stack experience
+- Migrate frontend to React for better state management and scalability
 - Refresh token mechanism for persistent sessions
 - Payment gateway integration
 - Real-time notifications (WebSocket)
 - Deployment on a cloud platform (Render/Railway)
+- Worker-side dashboard for accepting/rejecting bookings
 
 ## Author
 
