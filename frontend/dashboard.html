@@ -135,7 +135,18 @@
 </div>
 
 <div class="container">
-
+        <!-- WORKER PROFILE -->
+    <div class="card">
+        <h3>My Worker Profile (Fill this if you are a Worker)</h3>
+        <input type="text" id="wpServiceType" placeholder="Service type (e.g. Plumber, Electrician)">
+        <input type="number" id="wpExperience" placeholder="Experience (in years)">
+        <input type="number" step="any" id="wpHourlyRate" placeholder="Hourly Rate (₹)">
+        <div class="row">
+            <input type="number" step="any" id="wpLat" placeholder="Your Latitude (e.g. 28.6139)">
+            <input type="number" step="any" id="wpLng" placeholder="Your Longitude (e.g. 77.2090)">
+        </div>
+        <button class="primary" onclick="saveWorkerProfile()">Save My Profile</button>
+    </div>
     <!-- SEARCH WORKERS -->
     <div class="card">
         <h3>Find a Worker</h3>
@@ -189,7 +200,42 @@
             'Authorization': 'Bearer ' + token
         };
     }
+    async function saveWorkerProfile() {
+        const serviceType = document.getElementById('wpServiceType').value;
+        const experience = document.getElementById('wpExperience').value;
+        const hourlyRate = document.getElementById('wpHourlyRate').value;
+        const latitude = document.getElementById('wpLat').value;
+        const longitude = document.getElementById('wpLng').value;
 
+        if (!serviceType || !latitude || !longitude) {
+            showMessage("Please fill service type, latitude and longitude", true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/workers/profile`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({
+                    serviceType,
+                    experience: experience || 0,
+                    hourlyRate: hourlyRate || 0,
+                    latitude,
+                    longitude,
+                    availability: true
+                })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage("Worker profile saved successfully!", false);
+            } else {
+                showMessage(data.error || "Failed to save profile", true);
+            }
+        } catch (err) {
+            showMessage("Could not save profile. Check connection.", true);
+        }
+    }
     async function searchWorkers() {
         const serviceType = document.getElementById('serviceType').value;
         const lat = document.getElementById('lat').value;
